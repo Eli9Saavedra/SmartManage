@@ -1,7 +1,10 @@
 ﻿@page "/view-records"
 @inject RecordService RecordService
+@inject NavigationManager NavigationManager
 
 <h3 class="records-title">All Records</h3>
+
+<button class="btn-add" @onclick="NavigateToAddRecord">Add New Record</button>
 
 @if (records == null)
 {
@@ -16,7 +19,7 @@ else
     <table class="records-table">
         <thead>
             <tr>
-                <th>Record ID</th>
+               
                 <th>Record Name</th>
                 <th>Description</th>
                 <th>Created By</th>
@@ -27,12 +30,38 @@ else
             @foreach (var record in records)
             {
                 <tr>
-                    <td>@record.RecordId</td>
-                    <td>@record.RecordName</td>
-                    <td>@record.Description</td>
-                    <td>@record.CreatedBy</td>
+                    
                     <td>
-                        <button class="btn-delete" @onclick="() => DeleteRecord(record.RecordId)">Delete</button>
+                        @if (editRecordId == record.RecordId)
+                        {
+                            <InputText @bind-Value="editRecord.Description" class="form-control form-control-sm" />
+                        }
+                        else
+                        {
+                            @record.Description
+                        }
+                    </td>
+                    <td>
+                        @if (editRecordId == record.RecordId)
+                        {
+                            <InputText @bind-Value="editRecord.CreatedBy" class="form-control form-control-sm" />
+                        }
+                        else
+                        {
+                            @record.CreatedBy
+                        }
+                    </td>
+                    <td>
+                        @if (editRecordId == record.RecordId)
+                        {
+                            <button class="btn-save" @onclick="() => SaveEdit(record.RecordId)">Save</button>
+                            <button class="btn-cancel" @onclick="CancelEdit">Cancel</button>
+                        }
+                        else
+                        {
+                            <button class="btn-edit" @onclick="() => StartEdit(record)">Edit</button>
+                            <button class="btn-delete" @onclick="() => DeleteRecord(record.RecordId)">Delete</button>
+                        }
                     </td>
                 </tr>
             }
@@ -44,7 +73,23 @@ else
     .records-title {
         color: #2c3e50;
         margin-bottom: 1.5rem;
-        font-weight: 600;
+        font-weight: 600;                                   
+    }
+
+    .btn-add {
+        background-color: #27ae60;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1.2rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-add:hover {
+        background-color: #1e8449;
     }
 
     .records-table {
@@ -76,14 +121,39 @@ else
         margin-top: 1rem;
     }
 
+    .btn-edit, .btn-save, .btn-cancel, .btn-delete {
+        margin-right: 0.3rem;
+        padding: 0.3rem 0.7rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.95em;
+        transition: background 0.2s;
+    }
+    .btn-edit {
+        background-color: #2980b9;
+        color: #fff;
+    }
+    .btn-edit:hover {
+        background-color: #1c5d86;
+    }
+    .btn-save {
+        background-color: #27ae60;
+        color: #fff;
+    }
+    .btn-save:hover {
+        background-color: #1e8449;
+    }
+    .btn-cancel {
+        background-color: #bdc3c7;
+        color: #2c3e50;
+    }
+    .btn-cancel:hover {
+        background-color: #95a5a6;
+    }
     .btn-delete {
         background-color: #e74c3c;
         color: #fff;
-        border: none;
-        padding: 0.4rem 0.8rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background 0.2s;
     }
     .btn-delete:hover {
         background-color: #c0392b;
@@ -92,10 +162,49 @@ else
 
 @code {
     private List<Record>? records;
+    private int? editRecordId = null;
+    private Record? editRecord;
 
     protected override async Task OnInitializedAsync()
     {
         records = await RecordService.GetAllRecordsAsync();
+    }
+
+    private void StartEdit(Record record)
+    {
+        editRecordId = record.RecordId;
+        // Create a copy to avoid editing the list directly until save
+        editRecord = new Record
+        {
+            RecordId = record.RecordId,
+            RecordName = record.RecordName,
+            Description = record.Description,
+            CreatedBy = record.CreatedBy
+        };
+    }
+
+    private async Task SaveEdit(int recordId)
+    {
+        if (editRecord != null)
+        {
+            var tracked = records!.FirstOrDefault(r => r.RecordId == recordId);
+            if (tracked != null)
+            {
+                tracked.RecordName = editRecord.RecordName;
+                tracked.Description = editRecord.Description;
+                tracked.CreatedBy = editRecord.CreatedBy;
+                await RecordService.UpdateRecordAsync(tracked);
+            }
+            editRecordId = null;
+            editRecord = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editRecordId = null;
+        editRecord = null;
     }
 
     private async Task DeleteRecord(int recordId)
@@ -103,5 +212,10 @@ else
         await RecordService.DeleteRecordAsync(recordId);
         records = await RecordService.GetAllRecordsAsync();
         StateHasChanged();
+    }
+
+    private void NavigateToAddRecord()
+    {
+        NavigationManager.NavigateTo("/add-record");
     }
 }

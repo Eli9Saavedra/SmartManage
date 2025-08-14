@@ -1,5 +1,6 @@
 ﻿@page "/add-record"
 @inject RecordService RecordService
+@inject NavigationManager NavigationManager
 
 <h3>AddRecord</h3>
 
@@ -22,20 +23,12 @@
     <button type="submit" class="btn btn-primary">Add Record</button>
 </EditForm>
 
-@if (successMessage != null)
-{
-    <div class="alert alert-success mt-3">@successMessage</div>
-}
-
 @code {
     private Record newRecord = new();
-    private string? successMessage;
 
     private async Task HandleValidSubmit()
     {
         await RecordService.AddRecordAsync(newRecord);
-        successMessage = "Record added successfully!";
-        newRecord = new Record(); // Reset the form after submission
-        StateHasChanged();
+        NavigationManager.NavigateTo("/view-records");
     }
 }
