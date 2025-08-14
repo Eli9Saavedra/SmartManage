@@ -1,0 +1,107 @@
+﻿@page "/view-records"
+@inject RecordService RecordService
+
+<h3 class="records-title">All Records</h3>
+
+@if (records == null)
+{
+    <p class="loading-msg"><em>Loading...</em></p>
+}
+else if (!records.Any())
+{
+    <p class="no-records-msg">No records found.</p>
+}
+else
+{
+    <table class="records-table">
+        <thead>
+            <tr>
+                <th>Record ID</th>
+                <th>Record Name</th>
+                <th>Description</th>
+                <th>Created By</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in records)
+            {
+                <tr>
+                    <td>@record.RecordId</td>
+                    <td>@record.RecordName</td>
+                    <td>@record.Description</td>
+                    <td>@record.CreatedBy</td>
+                    <td>
+                        <button class="btn-delete" @onclick="() => DeleteRecord(record.RecordId)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<style>
+    .records-title {
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+
+    .records-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .records-table th, .records-table td {
+        border: 1px solid #e1e1e1;
+        padding: 0.75rem 1rem;
+        text-align: left;
+    }
+
+    .records-table th {
+        background: #f8f9fa;
+        font-weight: 700;
+    }
+
+    .records-table tr:nth-child(even) {
+        background: #f4f6f8;
+    }
+
+    .loading-msg, .no-records-msg {
+        color: #888;
+        font-style: italic;
+        margin-top: 1rem;
+    }
+
+    .btn-delete {
+        background-color: #e74c3c;
+        color: #fff;
+        border: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-delete:hover {
+        background-color: #c0392b;
+    }
+</style>
+
+@code {
+    private List<Record>? records;
+
+    protected override async Task OnInitializedAsync()
+    {
+        records = await RecordService.GetAllRecordsAsync();
+    }
+
+    private async Task DeleteRecord(int recordId)
+    {
+        await RecordService.DeleteRecordAsync(recordId);
+        records = await RecordService.GetAllRecordsAsync();
+        StateHasChanged();
+    }
+}
