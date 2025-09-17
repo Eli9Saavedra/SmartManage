@@ -1,7 +1,148 @@
 ﻿@page "/"
+@inject RecordService RecordService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1 class="dashboard-title">SmartManage Dashboard</h1>
 
-Welcome to your new app.
+@if (records == null)
+{
+    <div class="dashboard-loading"><em>Loading dashboard...</em></div>
+}
+else
+{
+    <div class="dashboard-summary">
+        <div class="summary-card">
+            <div class="summary-value">@records.Count</div>
+            <div class="summary-label">Total Records</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">@GetUniqueUsers()</div>
+            <div class="summary-label">Unique Creators</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">@GetLatestRecordName()</div>
+            <div class="summary-label">Latest Record</div>
+        </div>
+    </div>
+
+    <h3 class="dashboard-table-title">Recent Records</h3>
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Record Name</th>
+                <th>Description</th>
+                <th>Created By</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in records.OrderByDescending(r => r.RecordId).Take(5))
+            {
+                <tr>
+                    <td>@record.RecordName</td>
+                    <td>@record.Description</td>
+                    <td>@record.CreatedBy</td>
+                    <td>@record.RecordId</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<style>
+.dashboard-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.dashboard-summary {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+}
+
+.summary-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 1.5rem 2.5rem;
+    text-align: center;
+    min-width: 160px;
+}
+
+.summary-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #27ae60;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    font-size: 1.1rem;
+    color: #888;
+    font-weight: 500;
+}
+
+.dashboard-table-title {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #2980b9;
+    font-weight: 600;
+    text-align: left;
+}
+
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.dashboard-table th, .dashboard-table td {
+    border: 1px solid #e1e1e1;
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+.dashboard-table th {
+    background: #f4f6f8;
+    font-weight: 700;
+}
+
+.dashboard-table tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.dashboard-loading {
+    color: #888;
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+</style>
+
+@code {
+    private List<Record>? records;
+
+    protected override async Task OnInitializedAsync()
+    {
+        records = await RecordService.GetAllRecordsAsync();
+    }
+
+    private int GetUniqueUsers()
+    {
+        return records?.Select(r => r.CreatedBy).Distinct().Count() ?? 0;
+    }
+
+    private string GetLatestRecordName()
+    {
+        var latest = records?.OrderByDescending(r => r.RecordId).FirstOrDefault();
+        return latest?.RecordName ?? "N/A";
+    }
+}
