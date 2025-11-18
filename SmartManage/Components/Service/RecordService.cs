@@ -17,6 +17,14 @@ public class RecordService
         await _context.SaveChangesAsync();
     }
 
+    // add record and assign owner
+    public async Task AddRecordForUserAsync(Record record, int ownerId)
+    {
+        record.OwnerId = ownerId;
+        _context.Records.Add(record);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task UpdateRecordAsync(Record record)
     {
         _context.Records.Update(record);
@@ -36,5 +44,13 @@ public class RecordService
     public async Task<List<Record>> GetAllRecordsAsync()
     {
         return await _context.Records.ToListAsync();
+    }
+
+    // get records for a specific user
+    public async Task<List<Record>> GetRecordsForUserAsync(int ownerId)
+    {
+        return await _context.Records
+            .Where(r => r.OwnerId == ownerId)
+            .ToListAsync();
     }
 }

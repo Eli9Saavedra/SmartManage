@@ -1,0 +1,50 @@
+﻿@page "/login"
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<h3>Login</h3>
+
+<EditForm Model="model" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText class="form-control" @bind-Value="model.Email" />
+    </div>
+    <div class="mb-3">
+        <label>Password</label>
+        <InputText type="password" class="form-control" @bind-Value="model.Password" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Login</button>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger mt-3">@error</div>
+    }
+</EditForm>
+
+@code {
+    private LoginModel model = new();
+    private string? error;
+
+    private async Task HandleLogin()
+    {
+        var (success, err) = await AuthService.LoginAsync(model.Email, model.Password);
+        if (success)
+        {
+            NavigationManager.NavigateTo("/view-records");
+        }
+        else
+        {
+            error = err;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

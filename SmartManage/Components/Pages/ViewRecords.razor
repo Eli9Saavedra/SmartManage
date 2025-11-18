@@ -1,12 +1,15 @@
 ﻿@page "/view-records"
 @inject RecordService RecordService
+@inject CurrentUserService CurrentUser
 @inject NavigationManager NavigationManager
 
-<h3 class="records-title">All Records</h3>
+<h3 class="records-title">My Records</h3>
 
-<button class="btn-add" @onclick="NavigateToAddRecord">Add New Record</button>
-
-@if (records == null)
+@if (!CurrentUser.IsAuthenticated)
+{
+    <div class="alert alert-warning">Please <a href="/login">log in</a> to view your records.</div>
+}
+else if (records == null)
 {
     <p class="loading-msg"><em>Loading...</em></p>
 }
@@ -19,10 +22,9 @@ else
     <table class="records-table">
         <thead>
             <tr>
-               
+                <th>Record ID</th>
                 <th>Record Name</th>
                 <th>Description</th>
-                <th>Created By</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -30,7 +32,17 @@ else
             @foreach (var record in records)
             {
                 <tr>
-                    
+                    <td>@record.RecordId</td>
+                    <td>
+                        @if (editRecordId == record.RecordId)
+                        {
+                            <InputText @bind-Value="editRecord.RecordName" class="form-control form-control-sm" />
+                        }
+                        else
+                        {
+                            @record.RecordName
+                        }
+                    </td>
                     <td>
                         @if (editRecordId == record.RecordId)
                         {
@@ -39,16 +51,6 @@ else
                         else
                         {
                             @record.Description
-                        }
-                    </td>
-                    <td>
-                        @if (editRecordId == record.RecordId)
-                        {
-                            <InputText @bind-Value="editRecord.CreatedBy" class="form-control form-control-sm" />
-                        }
-                        else
-                        {
-                            @record.CreatedBy
                         }
                     </td>
                     <td>
@@ -167,38 +169,53 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        records = await RecordService.GetAllRecordsAsync();
+        if (!CurrentUser.IsAuthenticated || CurrentUser.UserId == null)
+        {
+            records = null;
+            return;
+        }
+
+        records = await RecordService.GetRecordsForUserAsync(CurrentUser.UserId.Value);
     }
 
     private void StartEdit(Record record)
     {
         editRecordId = record.RecordId;
-        // Create a copy to avoid editing the list directly until save
         editRecord = new Record
         {
             RecordId = record.RecordId,
             RecordName = record.RecordName,
             Description = record.Description,
-            CreatedBy = record.CreatedBy
+            CreatedBy = record.CreatedBy,
+            OwnerId = record.OwnerId
         };
     }
 
     private async Task SaveEdit(int recordId)
     {
-        if (editRecord != null)
+        if (editRecord == null || CurrentUser.UserId == null)
         {
-            var tracked = records!.FirstOrDefault(r => r.RecordId == recordId);
-            if (tracked != null)
-            {
-                tracked.RecordName = editRecord.RecordName;
-                tracked.Description = editRecord.Description;
-                tracked.CreatedBy = editRecord.CreatedBy;
-                await RecordService.UpdateRecordAsync(tracked);
-            }
-            editRecordId = null;
-            editRecord = null;
-            StateHasChanged();
+            CancelEdit();
+            return;
         }
+
+        // update tracked item in local list
+        var tracked = records!.FirstOrDefault(r => r.RecordId == recordId);
+        if (tracked != null)
+        {
+            tracked.RecordName = editRecord.RecordName;
+            tracked.Description = editRecord.Description;
+            tracked.CreatedBy = editRecord.CreatedBy;
+
+            // ensure owner remains the same (defensive)
+            tracked.OwnerId = CurrentUser.UserId.Value;
+
+            await RecordService.UpdateRecordAsync(tracked);
+        }
+
+        editRecordId = null;
+        editRecord = null;
+        StateHasChanged();
     }
 
     private void CancelEdit()
@@ -210,12 +227,8 @@ else
     private async Task DeleteRecord(int recordId)
     {
         await RecordService.DeleteRecordAsync(recordId);
-        records = await RecordService.GetAllRecordsAsync();
+        if (CurrentUser.UserId != null)
+            records = await RecordService.GetRecordsForUserAsync(CurrentUser.UserId.Value);
         StateHasChanged();
-    }
-
-    private void NavigateToAddRecord()
-    {
-        NavigationManager.NavigateTo("/add-record");
     }
 }

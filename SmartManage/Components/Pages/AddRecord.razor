@@ -1,34 +1,50 @@
 ﻿@page "/add-record"
 @inject RecordService RecordService
 @inject NavigationManager NavigationManager
+@inject CurrentUserService CurrentUser
 
-<h3>AddRecord</h3>
+<h3>Add Record</h3>
 
-<EditForm Model="@newRecord" OnValidSubmit="HandleValidSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+@if (!CurrentUser.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        You must <a href="/login">log in</a> to add records.
+    </div>
+}
+else
+{
+    <EditForm Model="@newRecord" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
 
-    <div class="mb-3">
-        <label for="recordName" class="form-label">Record Name</label>
-        <InputText id="recordName" class="form-control" @bind-Value="newRecord.RecordName" />
-    </div>
-    <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <InputText id="description" class="form-control" @bind-Value="newRecord.Description" />
-    </div>
-    <div class="mb-3">
-        <label for="createdBy" class="form-label">Created By</label>
-        <InputText id="createdBy" class="form-control" @bind-Value="newRecord.CreatedBy" />
-    </div>
-    <button type="submit" class="btn btn-primary">Add Record</button>
-</EditForm>
+        <div class="mb-3">
+            <label for="recordName" class="form-label">Record Name</label>
+            <InputText id="recordName" class="form-control" @bind-Value="newRecord.RecordName" />
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <InputText id="description" class="form-control" @bind-Value="newRecord.Description" />
+        </div>
+        <div class="mb-3">
+            <label for="createdBy" class="form-label">Created By</label>
+            <InputText id="createdBy" class="form-control" @bind-Value="newRecord.CreatedBy" />
+        </div>
+        <button type="submit" class="btn btn-primary">Add Record</button>
+    </EditForm>
+}
 
 @code {
     private Record newRecord = new();
 
     private async Task HandleValidSubmit()
     {
-        await RecordService.AddRecordAsync(newRecord);
+        if (!CurrentUser.IsAuthenticated || CurrentUser.UserId == null)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        await RecordService.AddRecordForUserAsync(newRecord, CurrentUser.UserId.Value);
         NavigationManager.NavigateTo("/view-records");
     }
 }

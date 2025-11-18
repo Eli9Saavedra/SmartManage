@@ -1,148 +1,182 @@
 ﻿@page "/"
+@using SmartManage.Components.Models
 @inject RecordService RecordService
+@inject CurrentUserService CurrentUser
+@inject NavigationManager NavigationManager
 
 <PageTitle>Dashboard</PageTitle>
 
-<h1 class="dashboard-title">SmartManage Dashboard</h1>
-
-@if (records == null)
+@if (!CurrentUser.IsAuthenticated)
 {
-    <div class="dashboard-loading"><em>Loading dashboard...</em></div>
+    <h1 class="dashboard-title">Welcome to SmartManage</h1>
+    <p class="lead">Sign in to see your personalized dashboard.</p>
+
+    <div class="public-summary">
+        <div class="summary-card">
+            <div class="summary-value">@publicCount</div>
+            <div class="summary-label">Total Records (public)</div>
+        </div>
+        <div class="summary-actions">
+            <button class="btn btn-primary me-2" @onclick="NavigateToLogin">Login</button>
+            <button class="btn btn-outline-primary" @onclick="NavigateToRegister">Register</button>
+
+        </div>
+    </div>
 }
 else
 {
+    <h1 class="dashboard-title">Hello, @CurrentUser.FirstName</h1>
+
     <div class="dashboard-summary">
         <div class="summary-card">
-            <div class="summary-value">@records.Count</div>
-            <div class="summary-label">Total Records</div>
+            <div class="summary-value">@UserTotal</div>
+            <div class="summary-label">Your Records</div>
         </div>
         <div class="summary-card">
-            <div class="summary-value">@GetUniqueUsers()</div>
-            <div class="summary-label">Unique Creators</div>
+            <div class="summary-value">@GetUniqueCreators()</div>
+            <div class="summary-label">Unique Creators (in your list)</div>
         </div>
         <div class="summary-card">
-            <div class="summary-value">@GetLatestRecordName()</div>
+            <div class="summary-value">@LatestRecordName()</div>
             <div class="summary-label">Latest Record</div>
         </div>
     </div>
 
-    <h3 class="dashboard-table-title">Recent Records</h3>
-    <table class="dashboard-table">
-        <thead>
-            <tr>
-                <th>Record Name</th>
-                <th>Description</th>
-                <th>Created By</th>
-                <th>Created</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var record in records.OrderByDescending(r => r.RecordId).Take(5))
-            {
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="dashboard-table-title">Recent Records</h3>
+        <div>
+            <button class="btn btn-sm btn-success me-2" @onclick="GoToAddRecord">Add Record</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="GoToViewRecords">View All</button>
+        </div>
+    </div>
+
+    @if (records == null || !records.Any())
+    {
+        <p class="no-records-msg">You have no records yet.</p>
+    }
+    else
+    {
+        <table class="dashboard-table">
+            <thead>
                 <tr>
-                    <td>@record.RecordName</td>
-                    <td>@record.Description</td>
-                    <td>@record.CreatedBy</td>
-                    <td>@record.RecordId</td>
+                    <th>Record Name</th>
+                    <th>Description</th>
+                    <th>Created By</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var r in records!.OrderByDescending(r => r.RecordId).Take(6))
+                {
+                    <tr>
+                        <td>@r.RecordName</td>
+                        <td>@r.Description</td>
+                        <td>@r.CreatedBy</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 <style>
 .dashboard-title {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: #2c3e50;
-    margin-bottom: 2rem;
-    text-align: center;
+    margin-bottom: 1rem;
 }
 
-.dashboard-summary {
+.public-summary, .dashboard-summary {
     display: flex;
-    gap: 2rem;
-    justify-content: center;
-    margin-bottom: 2.5rem;
+    gap: 1.25rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
 }
 
 .summary-card {
     background: #f8f9fa;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    padding: 1.5rem 2.5rem;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
     text-align: center;
     min-width: 160px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
 }
 
 .summary-value {
-    font-size: 2.5rem;
-    font-weight: 800;
+    font-size: 1.6rem;
+    font-weight: 700;
     color: #27ae60;
-    margin-bottom: 0.5rem;
 }
 
 .summary-label {
-    font-size: 1.1rem;
-    color: #888;
-    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.95rem;
 }
 
-.dashboard-table-title {
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    color: #2980b9;
-    font-weight: 600;
-    text-align: left;
-}
+.summary-actions { margin-left: 1rem; }
 
 .dashboard-table {
     width: 100%;
     border-collapse: collapse;
     background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    margin-bottom: 2rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
 }
 
 .dashboard-table th, .dashboard-table td {
-    border: 1px solid #e1e1e1;
-    padding: 0.75rem 1rem;
+    border: 1px solid #e9ecef;
+    padding: 0.5rem 0.75rem;
     text-align: left;
 }
 
-.dashboard-table th {
-    background: #f4f6f8;
-    font-weight: 700;
-}
-
-.dashboard-table tr:nth-child(even) {
-    background: #f8f9fa;
-}
-
-.dashboard-loading {
-    color: #888;
-    font-size: 1.2rem;
-    text-align: center;
-    margin-top: 2rem;
-}
+.no-records-msg { color: #888; font-style: italic; }
 </style>
 
 @code {
     private List<Record>? records;
+    private int UserTotal => records?.Count ?? 0;
+    private int publicCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        records = await RecordService.GetAllRecordsAsync();
+        // public count for anonymous users
+        publicCount = (await RecordService.GetAllRecordsAsync()).Count;
+
+        if (CurrentUser.IsAuthenticated && CurrentUser.UserId.HasValue)
+        {
+            records = await RecordService.GetRecordsForUserAsync(CurrentUser.UserId.Value);
+        }
     }
 
-    private int GetUniqueUsers()
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+
+    private void GoToAddRecord()
+    {
+        NavigationManager.NavigateTo("/add-record");
+    }
+
+    private void GoToViewRecords()
+    {
+        NavigationManager.NavigateTo("/view-records");
+    }
+
+
+
+    private int GetUniqueCreators()
     {
         return records?.Select(r => r.CreatedBy).Distinct().Count() ?? 0;
     }
 
-    private string GetLatestRecordName()
+    private string LatestRecordName()
     {
         var latest = records?.OrderByDescending(r => r.RecordId).FirstOrDefault();
-        return latest?.RecordName ?? "N/A";
+        return latest?.RecordName ?? "—";
     }
 }

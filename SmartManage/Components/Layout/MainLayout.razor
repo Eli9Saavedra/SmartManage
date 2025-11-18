@@ -1,13 +1,38 @@
 ﻿@inherits LayoutComponentBase
 
+@inject CurrentUserService CurrentUser
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-4 d-flex align-items-center">
+            <a class="me-auto" href="https://learn.microsoft.com/aspnet/core/" target="_blank">
+                About
+            </a>
+
+            <div>
+                @if (CurrentUser.IsAuthenticated)
+                {
+                    <span class="me-3">Hello, @CurrentUser.FirstName</span>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="Logout">
+                        Logout
+                    </button>
+                }
+                else
+                {
+                    <NavLink class="btn btn-sm btn-primary me-2" href="/login">
+                        Login
+                    </NavLink>
+                    <NavLink class="btn btn-sm btn-outline-primary" href="/register">
+                        Register
+                    </NavLink>
+                }
+            </div>
         </div>
 
         <article class="content px-4">
@@ -21,3 +46,11 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private void Logout()
+    {
+        AuthService.Logout();
+        NavigationManager.NavigateTo("/");
+    }
+}
